@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE wml PUBLIC "-//WAPFORUM//DTD WML 1.1//EN"
+    "http://www.wapforum.org/DTD/wml_1.1.xml">
+<wml>
+    <card id="chat" title="SuperBasic IM">
+        <p>
+            {{#if chat_unreadMessages}}
+                <a href="/chats/{{chat_id}}/seen">
+                    Alle Nachrichten als gelesen markieren
+                </a><br/>
+            {{/if}}
+
+            {{#if groupChat}}
+                <a href="/chats/{{chat_id}}/info">
+                    Gruppeninformationen
+                </a><br/>
+            {{else}}
+                <a href="/chats/{{chat_id}}/vcard">
+                    vCard herunterladen
+                </a><br/>
+            {{/if}}
+
+            {{#if chat_tooManyUnreadMessages}}
+                <a href="/chats/{{chat_id}}/allunreadmessages">
+                    {{amountUnreadMessages}} ungelesene Nachrichten anzeigen
+                </a><br/>
+            {{/if}}
+        </p>
+
+        {{#each messages}}
+            <p>
+                {{#if this.fromMe}}
+                    <b>Ich</b>
+                {{else}}
+                    <b>{{this.from}}</b>
+                {{/if}}
+
+                {{#if this.time}}
+                    ({{this.time}})
+                {{/if}}
+
+                <br/>
+
+                {{#each this.msg}}
+                    {{this}}<br/>
+                {{/each}}
+
+                {{#if this.media}}
+                    <a href="/media/{{this.id}}">
+                        Anhang herunterladen
+                    </a><br/>
+                {{/if}}
+
+                {{#if this.hasQuotedMessage}}
+                    Antwortet auf:<br/>
+                    {{this.repliedMessage}}<br/>
+                {{/if}}
+
+                {{#if this.hasReaction}}
+                    Reaktionen:<br/>
+                    {{#each this.reactionsDetails}}
+                        {{this}}<br/>
+                    {{/each}}
+                {{/if}}
+            </p>
+        {{/each}}
+
+        <p>
+            Nachricht:<br/>
+            <input
+                type="text"
+                name="message"
+                value=""
+                size="30"
+            />
+            <br/>
+
+            <anchor>
+                Senden
+                <go
+                    href="/chats/{{chat_id}}/reply"
+                    method="post"
+                >
+                    <postfield
+                        name="crumb"
+                        value="{{crumb}}"
+                    />
+                    <postfield
+                        name="message"
+                        value="$(message)"
+                    />
+                </go>
+            </anchor>
+        </p>
+
+        <p>
+            <a href="/chats/{{chat_id}}">Aktualisieren</a><br/>
+            <a href="/recentchats">Aktuelle Chats</a><br/>
+            <a href="/">Startseite</a>
+        </p>
+    </card>
+</wml>

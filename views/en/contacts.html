@@ -1,5 +1,5 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
 <title>SuperBasic IM</title>
 <link href="/public/css/style.css" rel="stylesheet">
@@ -12,16 +12,22 @@
           <div class="navbar-header">
             <a class="navbar-brand" href="/">SuperBasic IM</a>
           </div>
-        </div>
+
+          <div>
+            <ul class="nav navbar-nav navbar-right">
+              <li><a href="/chats" class="btn btn-success" id="first-btn">Chats</a></li>
+            </ul>
+          </div><!-- /.navbar-collapse -->
         </div>
       </nav>
 <div class="chat-area">
-    <img src="{{qr}}" />
-</div>
-<footer>
-    <ul class="nav nav-pills nav-stacked">
-      <li><strong><a href="/">Refresh</a></strong></li>
+    <ul>
+        {{#each users}}
+            <li>
+                <a href="/chats/{{this.id}}/vcard">{{this.name}} (Download vCard)</a>
+            </li>
+        {{/each}}
     </ul>
-  </footer>
+</div>
 </body>
 </html>

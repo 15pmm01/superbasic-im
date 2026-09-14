@@ -128,3 +128,10 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# SuperBasic IM runtime data (never commit)
+data/
+user.json
+media/
+.wwebjs_auth/
+.wwebjs_cache/

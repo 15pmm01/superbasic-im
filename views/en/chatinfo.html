@@ -1,5 +1,5 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
 <title>SuperBasic IM</title>
 <link href="/public/css/style.css" rel="stylesheet">
@@ -12,10 +12,10 @@
           <div class="navbar-header">
             <a class="navbar-brand" href="/">SuperBasic IM</a>
           </div>
-      
+
           <div>
             <ul class="nav navbar-nav navbar-right">
-		    <li><a href="/chats/{{chatId}}" class="btn btn-success" id="first-btn">Back to chat</a></li>
+                    <li><a href="/chats/{{chatId}}" class="btn btn-success" id="first-btn">Back to chat</a></li>
             </ul>
           </div><!-- /.navbar-collapse -->
         </div>
@@ -24,24 +24,24 @@
 <div class="chat-area">
     <table>
         <tbody>
-	    <strong>{{chatName}}</strong><br />
-	    <hr /><br />
-	    Description:<br />
-	    {{#each chatDescription}} {{this}} <br /> {{/each}}
-	    <hr /><br />
-	    Members:<br />
-	    <div class="participant-list">
-		<ul>
-	    	    {{#each participants}}
-		        <li>
-			    <a href="/chats/{{this.id}}/vcard">{{this.contactName}} </a>
-			    {{#if this.isAdmin}}
-			        <strong>Admin</strong>
-			    {{/if}}
-			</li>
-	    	    {{/each}}
-		<ul>
-	    </div>
+            <strong>{{chatName}}</strong><br />
+            <hr /><br />
+            Description:<br />
+            {{#each chatDescription}} {{this}} <br /> {{/each}}
+            <hr /><br />
+            Members:<br />
+            <div class="participant-list">
+                <ul>
+                    {{#each participants}}
+                        <li>
+                            <a href="/chats/{{this.id}}/vcard">{{this.contactName}} </a>
+                            {{#if this.isAdmin}}
+                                <strong>Administrator</strong>
+                            {{/if}}
+                        </li>
+                    {{/each}}
+                <ul>
+            </div>
         </tbody>
     </table>
 </div>

@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE wml PUBLIC "-//WAPFORUM//DTD WML 1.1//EN"
+    "http://www.wapforum.org/DTD/wml_1.1.xml">
+<wml>
+    <card id="contacts" title="Contacts">
+        <p>
+            <b>Contacts</b><br/>
+            Page {{page}} of {{totalPages}}
+        </p>
+
+        {{#if users.length}}
+            <p>
+                {{#each users}}
+                    <a href="/chats/{{this.id}}">
+                        {{this.name}}
+                    </a><br/>
+                    <small>
+                        <a href="/chats/{{this.id}}/vcard">
+                            Download vCard
+                        </a>
+                    </small><br/>
+                    <br/>
+                {{/each}}
+            </p>
+        {{else}}
+            <p>
+                No contacts found.
+            </p>
+        {{/if}}
+
+        <p>
+            {{#if hasPreviousPage}}
+                <a href="/contacts?page={{previousPage}}">
+                    Previous page
+                </a><br/>
+            {{/if}}
+
+            {{#if hasNextPage}}
+                <a href="/contacts?page={{nextPage}}">
+                    Next page
+                </a><br/>
+            {{/if}}
+        </p>
+
+        <p>
+            <a href="/">New message</a><br/>
+            <a href="/recentchats">Recent chats</a><br/>
+            <a href="/chats">All chats</a><br/>
+            <a href="/contacts">Refresh contacts</a>
+        </p>
+    </card>
+</wml>

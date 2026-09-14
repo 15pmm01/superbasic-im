@@ -1,53 +1,190 @@
-import Hapi, {Server} from '@hapi/hapi';
-import * as path from 'path';
-import * as handlebars from 'handlebars';
-import * as Inert from '@hapi/inert';
-import * as Vision from '@hapi/vision';
 import * as Cookie from '@hapi/cookie';
 import * as Crumb from '@hapi/crumb';
+import Hapi, {Request, Server} from '@hapi/hapi';
+import * as Inert from '@hapi/inert';
+import * as Vision from '@hapi/vision';
 import * as argon2 from 'argon2';
-import readline from 'readline';
-import fs from 'fs';
 import {randomBytes} from 'crypto';
-
+import fs from 'fs';
+import * as handlebars from 'handlebars';
+import readline from 'readline';
 import {WAState} from 'whatsapp-web.js';
-import {client, pairQr} from './client';
+
+import {client, markClientDead, pairQr} from './client';
+import {getMessages, getRequestLanguage} from './i18n';
 import {
+  ensureRuntimeDirectories,
+  PUBLIC_DIR,
+  USER_CONFIG_PATH,
+  VIEWS_DIR,
+} from './paths';
+import {escapeWml, isWmlRequest, renderPage} from './presentation';
+import {
+  all_chats_handler,
   chat_handler,
-  new_chat_or_pair_handler,
+  chat_info_handler,
   contacts_handler,
   media_handler,
-  recent_chats_handler,
-  all_chats_handler,
+  new_chat_or_pair_handler,
   new_chat_post_handler,
+  read_all_handler,
+  recent_chats_handler,
   reply_handler,
   vcard_handler,
-  read_all_handler,
-  chat_info_handler,
 } from './routes';
+
+interface UserConfiguration {
+  phoneNumber: string;
+  hash: string;
+  cookieKey: string;
+}
+
+interface LoginPayload {
+  username?: unknown;
+  password?: unknown;
+  crumb?: unknown;
+}
+
+interface ResponseDetails {
+  isBoom?: boolean;
+  message?: string;
+  stack?: string;
+  statusCode?: number;
+  output?: {
+    statusCode?: number;
+    [key: string]: unknown;
+  };
+}
+
+function errorDetails(err: unknown): unknown {
+  if (err && typeof err === 'object' && 'stack' in err) {
+    return (err as {stack?: unknown}).stack || err;
+  }
+
+  return err;
+}
+
+function safeStringify(value: unknown): string {
+  try {
+    return JSON.stringify(value);
+  } catch (_err) {
+    return '[unstringifiable]';
+  }
+}
+
+function logRequestLine(request: Request, statusCode: number): void {
+  const ip = request.info?.remoteAddress || '-';
+  const method = request.method ? request.method.toUpperCase() : '-';
+  const requestPath = request.path || request.url?.pathname || '-';
+  console.error(`[REQ] ${ip} ${method} ${requestPath} -> ${statusCode}`);
+}
+
+function loginPayload(request: Request): LoginPayload | null {
+  if (typeof request.payload !== 'object' || request.payload === null) {
+    return null;
+  }
+
+  return request.payload as LoginPayload;
+}
+
+function requestCrumb(request: Request): unknown {
+  return (request.plugins as Record<string, unknown>).crumb;
+}
 
 export let server: Server;
 
 export const init = async function (): Promise<Server> {
-  const user: {
-    phoneNumber: string;
-    hash: string;
-    cookieKey: string;
-  } = JSON.parse(fs.readFileSync('user.json', 'utf8'));
+  ensureRuntimeDirectories();
+  const user = JSON.parse(
+    fs.readFileSync(USER_CONFIG_PATH, 'utf8')
+  ) as UserConfiguration;
+
   server = Hapi.server({
     port: process.env.PORT || 4000,
-    host: '0.0.0.0',
+    host: process.env.HOST || '0.0.0.0',
     routes: {
       cors: {
         credentials: true,
       },
     },
   });
+
+  /*
+   * Normalize duplicate cookies before Crumb parses them. Some old browsers
+   * and WAP gateways resend the same cookie more than once.
+   */
+  server.ext('onRequest', (request, h) => {
+    if (request.headers.cookie) {
+      const cookies = new Map<string, string>();
+
+      String(request.headers.cookie)
+        .split(/[;,]/)
+        .map((part: string) => part.trim())
+        .filter((part: string) => part && !part.startsWith('$'))
+        .forEach((part: string) => {
+          const separator = part.indexOf('=');
+          if (separator === -1) return;
+
+          const name = part.slice(0, separator).trim();
+          const value = part.slice(separator + 1).trim();
+
+          if (name && !cookies.has(name)) cookies.set(name, value);
+        });
+
+      request.headers.cookie = Array.from(cookies.entries())
+        .map(([name, value]) => `${name}=${value}`)
+        .join('; ');
+    }
+
+    return h.continue;
+  });
+
+  /* Log Boom failures and any non-Boom response with a 5xx status. */
+  server.ext('onPreResponse', (request, h) => {
+    const response = request.response as unknown as ResponseDetails;
+
+    if (response?.isBoom) {
+      const statusCode = response.output?.statusCode || 500;
+      console.error(
+        `[BOOM] ${request.method.toUpperCase()} ${request.path} -> ${statusCode}`
+      );
+
+      if (response.message)
+        console.error(`[BOOM] message: ${response.message}`);
+      if (response.stack) console.error(response.stack);
+
+      try {
+        console.error(`[BOOM] output: ${safeStringify(response.output)}`);
+      } catch (_err) {
+        // Logging must never replace the application's actual response.
+      }
+    } else if (response?.statusCode && response.statusCode >= 500) {
+      console.error(
+        `[RESP>=500] ${request.method.toUpperCase()} ${request.path} -> ${response.statusCode}`
+      );
+    }
+
+    return h.continue;
+  });
+
+  /* Always record the request method, path, remote address, and final status. */
+  server.events.on('response', request => {
+    const response = request.response as unknown as ResponseDetails;
+    const statusCode =
+      response?.output?.statusCode || response?.statusCode || 0;
+    logRequestLine(request, statusCode);
+  });
+
   await server.register([Inert, Vision, Cookie]);
   await server.register({
     plugin: Crumb,
-
-    options: {},
+    options: {
+      cookieOptions: {
+        path: '/',
+        isSameSite: false,
+        isHttpOnly: false,
+      },
+    },
   });
 
   server.auth.strategy('session', 'cookie', {
@@ -55,45 +192,66 @@ export const init = async function (): Promise<Server> {
       name: 'sid',
       password: user.cookieKey,
       isSecure: process.env.NODE_ENV === 'production',
+      isHttpOnly: false,
+      isSameSite: false,
+      path: '/',
     },
     redirectTo: '/login',
-    // TODO: give proper types
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    validate: async (_request: any, session: any) => {
-      return {isValid: session.id === user.phoneNumber};
+    validate: async (_request, session) => {
+      const savedSession = session as {id?: unknown};
+      return {isValid: savedSession.id === user.phoneNumber};
     },
   });
 
   server.auth.default('session');
 
-  // Add Middleware
-  server.ext('onRequest', async (request, h) => {
+  /*
+   * Do not touch WhatsApp for unauthenticated requests. For authenticated
+   * pages, redirect a broken or unpaired client to the pairing/index flow.
+   */
+  server.ext('onPostAuth', async (request, h) => {
+    if (request.auth?.isAuthenticated !== true) return h.continue;
+
     if (
       request.path !== '/login' &&
       request.path !== '/' &&
       !request.path.startsWith('/public')
     ) {
-      const state = await client.getState();
+      let state: WAState | null = null;
+
+      try {
+        state = await client.getState();
+      } catch (err) {
+        console.error(
+          `[onRequest] client.getState() threw for ${request.method.toUpperCase()} ${request.path}`
+        );
+        console.error(errorDetails(err));
+        return h.redirect('/').takeover();
+      }
+
       if (state !== WAState.CONNECTED && pairQr !== null) {
         return h.redirect('/').takeover();
       }
     }
+
     return h.continue;
   });
+
   server.views({
     engines: {
       html: handlebars,
+      wml: handlebars,
     },
-    path: path.join(__dirname, 'views'),
+    path: VIEWS_DIR,
+    defaultExtension: 'html',
   });
 
-  // Routes
   server.route({
     method: 'GET',
     path: '/public/{param*}',
     handler: {
       directory: {
-        path: path.join(__dirname, 'public'),
+        path: PUBLIC_DIR,
       },
     },
     options: {
@@ -106,7 +264,9 @@ export const init = async function (): Promise<Server> {
       method: 'GET',
       path: '/login',
       handler: function (request, h) {
-        return h.view('login');
+        return renderPage(request, h, 'login', {
+          crumb: requestCrumb(request),
+        });
       },
       options: {
         auth: false,
@@ -116,14 +276,17 @@ export const init = async function (): Promise<Server> {
       method: 'POST',
       path: '/login',
       handler: async (request, h) => {
-        if (typeof request.payload === 'object') {
+        const language = getRequestLanguage(request);
+        const messages = getMessages(request);
+        const payload = loginPayload(request);
+
+        if (payload) {
           try {
-            const {username, password} = request.payload as {
-              username: string;
-              password: string;
-            };
+            const {username, password} = payload;
+
             if (
               username === user.phoneNumber &&
+              typeof password === 'string' &&
               (await argon2.verify(user.hash, password))
             ) {
               request.cookieAuth.set({id: username});
@@ -133,7 +296,50 @@ export const init = async function (): Promise<Server> {
             console.error(err);
           }
         }
-        return h.redirect('/login');
+
+        if (isWmlRequest(request)) {
+          return h
+            .response(
+              `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE wml PUBLIC "-//WAPFORUM//DTD WML 1.1//EN"
+    "http://www.wapforum.org/DTD/wml_1.1.xml">
+<wml>
+    <card id="login-failed" title="SuperBasic IM">
+        <p>
+            ${escapeWml(messages.loginFailed)}
+        </p>
+
+        <p>
+            ${escapeWml(messages.invalidCredentials)}
+        </p>
+
+        <p>
+            <a href="/login">${escapeWml(messages.retry)}</a>
+        </p>
+    </card>
+</wml>`
+            )
+            .code(401)
+            .type('text/vnd.wap.wml; charset=utf-8')
+            .header('Content-Language', language)
+            .header('Vary', 'Accept-Language');
+        }
+
+        return h
+          .response(
+            `<!doctype html>
+<html lang="${language}">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta http-equiv="refresh" content="5;url=/login">
+<p>${messages.loginFailed}</p>
+<p>${messages.invalidCredentials}</p>
+<p><a href="/login">${messages.backToLogin}</a></p>
+</html>`
+          )
+          .code(401)
+          .type('text/html; charset=utf-8')
+          .header('Content-Language', language)
+          .header('Vary', 'Accept-Language');
       },
       options: {
         auth: {
@@ -225,49 +431,109 @@ export const init = async function (): Promise<Server> {
 };
 
 export const start = async function (): Promise<void> {
+  await server.start();
   console.log(`Listening on ${server.settings.host}:${server.settings.port}`);
-  server.start();
 };
 
-process.on('unhandledRejection', err => {
-  console.error('unhandledRejection');
-  console.error(err);
-});
+let fatalProcessHandlersInstalled = false;
 
-// if args are passed, then create a user, otherwise start the server
-if (process.argv.length > 2 && process.argv[2] === 'init') {
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
+function installFatalProcessHandlers(): void {
+  if (fatalProcessHandlersInstalled) return;
+
+  fatalProcessHandlersInstalled = true;
+  process.on('unhandledRejection', err => {
+    markClientDead('unhandled rejection', err);
   });
 
-  rl.question('Enter the phone number: ', async phoneNumber => {
-    // TODO: give proper types
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const rli = rl as any;
-
-    rli.stdoutMuted = true;
-    rli.query = 'Enter the password: ';
-    rl.question(rli.query, async password => {
-      const hash = await argon2.hash(password.trim());
-      rl.close();
-      // generate 32 byte key for cookie password'
-      const cookieKey = randomBytes(32).toString('base64');
-
-      // save to a file
-      const user = {phoneNumber, hash, cookieKey};
-      fs.writeFileSync('user.json', JSON.stringify(user));
-      console.log('\nUser created');
-    });
-    rli._writeToOutput = function _writeToOutput(stringToWrite: string) {
-      if (rli.stdoutMuted) rli.output.write('*');
-      else rli.output.write(stringToWrite);
-    };
+  process.on('uncaughtException', err => {
+    markClientDead('uncaught exception', err);
   });
-} else {
-  // Start your client
-  client.initialize();
-  init()
-    .then(() => start())
-    .catch(err => console.error('Error While Starting the server', err));
+}
+
+/** Start the HTTP server only after the browser client initializes. */
+export async function runApplication(): Promise<void> {
+  installFatalProcessHandlers();
+
+  try {
+    await init();
+    await client.initialize();
+    await start();
+  } catch (err) {
+    markClientDead('application startup failed', err);
+  }
+}
+
+// Importing this module exposes init() without starting the CLI or WhatsApp.
+if (require.main === module) {
+  // If `init` is passed, create a user; otherwise start the client and server.
+  if (process.argv.length > 2 && process.argv[2] === 'init') {
+    ensureRuntimeDirectories();
+
+    if (fs.existsSync(USER_CONFIG_PATH)) {
+      console.error(
+        `Refusing to overwrite existing login: ${USER_CONFIG_PATH}`
+      );
+      process.exitCode = 1;
+    } else {
+      const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout,
+      });
+
+      rl.question('Enter the phone number: ', phoneNumberInput => {
+        const phoneNumber = phoneNumberInput.trim();
+
+        if (!phoneNumber) {
+          console.error('The phone number cannot be empty.');
+          rl.close();
+          process.exitCode = 1;
+          return;
+        }
+
+        // readline does not publicly type its password-masking internals.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const rli = rl as any;
+
+        rli.stdoutMuted = true;
+        rli.query = 'Enter the password: ';
+
+        rl.question(rli.query, async passwordInput => {
+          try {
+            const password = passwordInput.trim();
+
+            if (!password) {
+              console.error('\nThe password cannot be empty.');
+              process.exitCode = 1;
+              return;
+            }
+
+            const hash = await argon2.hash(password);
+            const cookieKey = randomBytes(32).toString('base64');
+            const user = {phoneNumber, hash, cookieKey};
+
+            fs.writeFileSync(USER_CONFIG_PATH, JSON.stringify(user), {
+              encoding: 'utf8',
+              flag: 'wx',
+              mode: 0o600,
+            });
+            fs.chmodSync(USER_CONFIG_PATH, 0o600);
+            console.log('\nUser created');
+          } catch (err) {
+            console.error('\nUnable to create the user configuration.');
+            console.error(errorDetails(err));
+            process.exitCode = 1;
+          } finally {
+            rl.close();
+          }
+        });
+
+        rli._writeToOutput = function _writeToOutput(stringToWrite: string) {
+          if (rli.stdoutMuted) rli.output.write('*');
+          else rli.output.write(stringToWrite);
+        };
+      });
+    }
+  } else {
+    void runApplication();
+  }
 }

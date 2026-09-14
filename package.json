@@ -1,37 +1,51 @@
 {
   "name": "superbasic-im",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Super Basic IM: a web-proxy for WhatsApp Web that works on dumbphones",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
-    "build": "npm run compile && ln -s ../views ./dist/views && ln -s ../public ./dist/public && mkdir -p dist/media",
-    "lint": "gts lint",
+    "build": "npm run clean && npm run compile",
+    "check:browser": "npm run compile && node scripts/check-browser.js",
     "clean": "gts clean",
     "compile": "tsc",
     "fix": "gts fix",
+    "lint": "gts lint",
     "prepare": "npm run compile",
-    "pretest": "npm run compile",
-    "posttest": "npm run lint"
+    "setup": "node dist/index.js init",
+    "smoke": "node scripts/smoke.js",
+    "smoke:setup": "node scripts/setup-smoke.js",
+    "smoke:startup-failure": "node scripts/startup-failure-smoke.js",
+    "smoke:wa-patch": "node scripts/wa-patch-smoke.js",
+    "start": "node dist/index.js",
+    "test": "npm run compile && npm run lint && npm run smoke && npm run smoke:setup && npm run smoke:startup-failure && npm run smoke:wa-patch",
+    "update:whatsapp": "node scripts/update-whatsapp.js"
   },
   "author": "tomtau",
   "license": "MPL-2.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/petarmarinov37/superbasic-im.git"
+  },
+  "bugs": {
+    "url": "https://github.com/petarmarinov37/superbasic-im/issues"
+  },
+  "homepage": "https://github.com/petarmarinov37/superbasic-im#readme",
   "dependencies": {
-    "@hapi/boom": "^10.0.1",
     "@hapi/cookie": "^12.0.1",
     "@hapi/crumb": "^9.0.1",
     "@hapi/hapi": "^21.3.9",
-    "@hapi/inert": "^7.1.0",
+    "@hapi/inert": "^7.1.2",
     "@hapi/vision": "^7.0.3",
     "argon2": "^0.40.3",
     "handlebars": "^4.7.9",
     "mime-types": "^2.1.35",
-    "node-cache": "^5.1.2",
     "node-emoji": "^2.1.3",
     "qrcode": "^1.5.3",
-    "readline": "^1.3.0",
-    "typescript": "^5.4.5",
     "vcards-js": "^2.10.0",
-    "whatsapp-web.js": "^1.34.4"
+    "whatsapp-web.js": "git+https://github.com/pedroslopez/whatsapp-web.js.git#main"
   },
   "devDependencies": {
     "@types/hapi__cookie": "^12.0.5",
@@ -42,5 +56,9 @@
     "@types/vcards-js": "^2.10.5",
     "gts": "^5.3.1",
     "typescript": "^5.4.3"
+  },
+  "allowScripts": {
+    "argon2@0.40.3": true,
+    "puppeteer@24.38.0": true
   }
 }

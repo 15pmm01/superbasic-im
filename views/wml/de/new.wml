@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE wml PUBLIC "-//WAPFORUM//DTD WML 1.1//EN"
+    "http://www.wapforum.org/DTD/wml_1.1.xml">
+<wml>
+    <card id="new" title="SuperBasic IM">
+        <p>
+            SuperBasic IM
+            {{#if totalUnreadMessages}}
+                ({{totalUnreadMessages}})
+            {{/if}}
+            <br/>
+
+            <a href="/recentchats">Aktuelle Chats</a><br/>
+            <a href="/chats">Alle Chats</a><br/>
+            <a href="/contacts">Kontakte</a>
+        </p>
+
+        <p>
+            Neue Nachricht
+        </p>
+
+        <p>
+            Nummer ohne +:<br/>
+            <input
+                name="custom"
+                type="text"
+                format="*N"
+                maxlength="20"
+                emptyok="true"
+            />
+        </p>
+
+        <p>
+            Nachricht:<br/>
+            <input
+                name="message"
+                type="text"
+                maxlength="1000"
+                emptyok="true"
+            />
+        </p>
+
+        <p>
+            <anchor>
+                Senden
+                <go href="/new-chat" method="post">
+                    <postfield name="crumb" value="{{crumb}}"/>
+                    <postfield name="user" value="custom"/>
+                    <postfield name="custom" value="$(custom)"/>
+                    <postfield name="message" value="$(message)"/>
+                </go>
+            </anchor>
+        </p>
+
+        <p>
+            <a href="/">Aktualisieren</a>
+        </p>
+    </card>
+</wml>

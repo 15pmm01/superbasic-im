@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE wml PUBLIC "-//WAPFORUM//DTD WML 1.1//EN"
+    "http://www.wapforum.org/DTD/wml_1.1.xml">
+<wml>
+    <card id="groupinfo" title="SuperBasic IM">
+        <p>
+            Seite {{page}} von {{totalPages}}<br/>
+            <b>{{chatName}}</b><br/>
+            Gruppeninformationen
+        </p>
+
+        {{#each items}}
+            {{#if this.isDescription}}
+                <p>
+                    {{this.text}}
+                </p>
+            {{/if}}
+
+            {{#if this.isParticipant}}
+                <p>
+                    {{#if this.encodedId}}
+                        <a href="/chats/{{this.encodedId}}/vcard">
+                            {{this.contactName}}
+                        </a>
+                    {{else}}
+                        {{this.contactName}}
+                    {{/if}}
+
+                    {{#if this.isAdmin}}
+                        <br/>
+                        <b>Administrator</b>
+                    {{/if}}
+                </p>
+            {{/if}}
+        {{/each}}
+
+        {{#if hasPreviousPage}}
+            <p>
+                <a href="/chats/{{chatId}}/info?page={{previousPage}}">
+                    Vorherige Seite
+                </a>
+            </p>
+        {{/if}}
+
+        {{#if hasNextPage}}
+            <p>
+                <a href="/chats/{{chatId}}/info?page={{nextPage}}">
+                    Nächste Seite
+                </a>
+            </p>
+        {{/if}}
+
+        <p>
+            <a href="/chats/{{chatId}}/info?page={{page}}">
+                Aktualisieren
+            </a><br/>
+            <a href="/chats/{{chatId}}">
+                Zurück zum Chat
+            </a><br/>
+            <a href="/recentchats">
+                Aktuelle Chats
+            </a><br/>
+            <a href="/">
+                Startseite
+            </a>
+        </p>
+    </card>
+</wml>

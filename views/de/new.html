@@ -1,5 +1,5 @@
 <!doctype html>
-<html>
+<html lang="de">
 <head>
 <title>SuperBasic IM</title>
 <link href="/public/css/style.css" rel="stylesheet">
@@ -10,13 +10,13 @@
     <nav class="navbar navbar-default">
         <div class="container-fluid">
           <div class="navbar-header">
-		  <a class="navbar-brand" href="/">SuperBasic IM</a><strong> ({{totalUnreadMessages}})</strong>
+                  <a class="navbar-brand" href="/">SuperBasic IM</a><strong> ({{totalUnreadMessages}})</strong>
           </div>
           <div>
             <ul class="nav navbar-nav navbar-right">
-	      <li><a href="/recentchats" class="btn btn-success" id="second-btn">Recent Chats</a></li>
-              <li><a href="/chats" class="btn btn-success" id="first-btn">All Chats</a></li>
-              <li><a href="/contacts" class="btn btn-success" id="third-btn">Contacts</a></li>
+              <li><a href="/recentchats" class="btn btn-success" id="second-btn">Aktuelle Chats</a></li>
+              <li><a href="/chats" class="btn btn-success" id="first-btn">Alle Chats</a></li>
+              <li><a href="/contacts" class="btn btn-success" id="third-btn">Kontakte</a></li>
             </ul>
           </div><!-- /.navbar-collapse -->
         </div>
@@ -25,22 +25,22 @@
     <form method="post" action="/new-chat" enctype="multipart/form-data">
       <input type="hidden" name="crumb" value="{{crumb}}"/>
       <div class="form-group">
-        <label for="user">To</label>
+        <label for="user">An</label>
         <select class="form-control" id="user" name="user">
-            <option value="custom" selected>...new...</option>
+            <option value="custom" selected>...neu...</option>
             {{#each users}}
             <option value="{{this.id}}">{{this.name}}</option>
             {{/each}}
         </select>
-        <input type="number" class="form-control" id="custom" name="custom" placeholder="Full number without `+`..."/>
+        <input type="number" class="form-control" id="custom" name="custom" placeholder="Komplette Nummer ohne „+“..."/>
 
       </div>
-      <textarea class="form-control" id="message" name="message" rows="3" placeholder="Reply..."></textarea>
+      <textarea class="form-control" id="message" name="message" rows="3" placeholder="Antwort..."></textarea>
       <div class="form-group">
-          <label for="file">Attachment</label>
+          <label for="file">Anhang</label>
           <input type="file" class="form-control" id="file" name="file" />
       </div>
-      <input type="submit" class="btn btn-default btn-block" value="Send" />
+      <input type="submit" class="btn btn-default btn-block" value="Senden" />
     </form>
 </div>
 </body>

@@ -9,7 +9,7 @@ All contributors are expected to follow our [Code of Conduct](CODE_OF_CONDUCT.md
 
 ## Feature requests and bug reports
 
-Feature requests and bug reports should be posted as [Github issues](issues/new).
+Feature requests and bug reports should be posted as [GitHub issues](https://github.com/petarmarinov37/superbasic-im/issues/new).
 In an issue, please describe what you did, what you expected, and what happened instead.
 In line with the C4's Patch Requirements, please use 
 a single short (less than 50 characters) line stating the problem (“Problem: …") being solved
@@ -29,12 +29,12 @@ Once you identified a problem to work on, this is the summary of your basic step
 
 * Post a comment in the issue to say that you are working on it, so that other people do not work on the same issue.
 
-* Create a local branch on your machine by `git checkout -b branch_name`.
+* Create a local branch on your machine with `git switch -c branch_name`.
 
 * Make sure the code compiles (`npm run compile`) and passes the style check (`npm run lint`).
 
 * Commit your changes to your own fork -- see [C4 Patch Requirements](https://rfc.zeromq.org/spec:42/C4/#23-patch-requirements) for guidelines.
 
-* Check you are working on the latest version on main in Super Basic IM's official repository. If not, please pull Super Basic IM's official repository's main (upstream) into your fork's main branch, and rebase your committed changes or replay your stashed changes in your branch over the latest changes in the upstream version.
+* Check that you are working on the latest version of this fork's `main` branch, then rebase your work if necessary.
 
-* Push your changes to your fork's branch and open the pull request to Super Basic IM's repository main branch.
+* Push your changes to your fork and open a pull request against this repository's `main` branch.

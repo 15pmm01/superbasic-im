@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE wml PUBLIC "-//WAPFORUM//DTD WML 1.1//EN"
+    "http://www.wapforum.org/DTD/wml_1.1.xml">
+<wml>
+    <card id="pair-required" title="SuperBasic IM">
+        <p>
+            WhatsApp ist derzeit nicht verbunden.
+        </p>
+
+        <p>
+            Die Anmeldung per QR-Code ist nur über die HTML-Version möglich.
+        </p>
+
+        {{#if htmlHost}}
+            <p>
+                Bitte SuperBasic IM zuerst über<br/>
+                {{htmlHost}}<br/>
+                verbinden.
+            </p>
+        {{else}}
+            <p>
+                Bitte SuperBasic IM zuerst über die HTML-Version verbinden.
+            </p>
+        {{/if}}
+
+        <p>
+            <a href="/">Erneut versuchen</a>
+        </p>
+    </card>
+</wml>

@@ -1,10 +1,12 @@
 <!doctype html>
-<html>
+<html lang="de">
 <head>
-<title>SuperBasic IM: Login page</title>
+<title>SuperBasic IM: Anmeldeseite</title>
 <link href="/public/css/style.css" rel="stylesheet">
 <meta name="theme-color" content="#305">
 <meta name="viewport" content="width=device-width">
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+<meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
 </head>
 <body>
     <nav class="navbar navbar-default">
@@ -17,14 +19,14 @@
 <form class="login" method="post" action="/login">
     <input type="hidden" name="crumb" value="{{crumb}}"/>
 <div class="form-group">
-    <label for="username">Username</label>
+    <label for="username">Benutzername</label>
     <input type="text" class="form-control" id="username" name="username" />
 </div>
 <div class="form-group">
-    <label for="password">Password</label>
+    <label for="password">Passwort</label>
     <input type="password" class="form-control" id="password" name="password" />
 </div>
-<input type="submit" class="btn btn-default btn-block" value="Log In" />
+<input type="submit" class="btn btn-default btn-block" value="Anmelden" />
 </form>
 </body>
 </html>

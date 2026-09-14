@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE wml PUBLIC "-//WAPFORUM//DTD WML 1.1//EN"
+    "http://www.wapforum.org/DTD/wml_1.1.xml">
+<wml>
+    <card id="chats" title="SuperBasic IM">
+        <p>
+            Page {{page}} of {{totalPages}}
+        </p>
+
+        <p>
+            {{#each chats}}
+                <a href="/chats/{{this.id}}">
+                    {{#if this.hasUnread}}
+                        * {{this.name}}
+                    {{else}}
+                        {{this.name}}
+                    {{/if}}
+                </a><br/>
+            {{else}}
+                No chats found.
+            {{/each}}
+        </p>
+
+        {{#if hasPreviousPage}}
+            <p>
+                <a href="{{listPath}}?page={{previousPage}}">Previous page</a>
+            </p>
+        {{/if}}
+
+        {{#if hasNextPage}}
+            <p>
+                <a href="{{listPath}}?page={{nextPage}}">Next page</a>
+            </p>
+        {{/if}}
+
+        <p>
+            <a href="/">Home</a>
+        </p>
+    </card>
+</wml>

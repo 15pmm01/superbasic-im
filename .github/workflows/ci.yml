@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PUPPETEER_SKIP_DOWNLOAD: 'true'
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Use project Node.js version
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Compile, lint, and run smoke tests
+        run: npm test
+      - name: Verify clean build
+        run: npm run build
+      - name: Smoke-test localized HTML and WML
+        run: npm run smoke

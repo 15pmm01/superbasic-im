@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="de">
+<head>
+<title>SuperBasic IM</title>
+<link href="/public/css/style.css" rel="stylesheet">
+<meta name="theme-color" content="#305">
+<meta name="viewport" content="width=device-width">
+<style>
+  .hidden {
+    display: none;
+  }
+</style>
+</head>
+<body>
+    <nav class="navbar navbar-default">
+        <div class="container-fluid">
+          <div class="navbar-header">
+            <a class="navbar-brand" href="/">SuperBasic IM</a>
+          </div>
+
+          <div>
+            <ul class="nav navbar-nav navbar-right">
+                    {{#if chat_unreadMessages}}
+                    <li><a href="/chats/{{chat_id}}/seen" class="btn btn-success" id="second-btn">Alle Nachrichten als gelesen markieren</a></li>
+                    {{/if}}
+                    {{#if groupChat}}
+              <li><a href="/chats/{{chat_id}}/info" class="btn btn-success" id="third-btn">Gruppeninformationen</a></li>
+                    {{else}}
+                    <li><a href="/chats/{{chat_id}}/vcard" class="btn btn-success" id="fourth-btn">vCard herunterladen</a></li>
+              {{/if}}
+              {{#if chat_tooManyUnreadMessages}}
+              <li><a href="/chats/{{chat_id}}/allunreadmessages" class="btn btn-success" id="first-btn">{{amountUnreadMessages}} ungelesene Nachrichten anzeigen</a></li>
+              {{/if}}
+            </ul>
+          </div><!-- /.navbar-collapse -->
+        </div>
+      </nav>
+<div class="chat-area">
+    {{#each messages}}
+        {{#if this.fromMe}}
+            <strong>Ich </strong>
+        {{else}}
+            <strong>{{this.from}} </strong>
+        {{/if}}
+         ({{this.time}}): {{#each this.msg}} {{this}} <br />{{/each}}
+         {{#if this.media}}
+            <a href="/media/{{this.id}}">Anhang herunterladen</a><br />
+         {{/if}}
+        <small> {{#if this.showDetails}}
+                <a href="#" id="showDetails" onclick="document.getElementById('details{{this.id}}').classList.toggle('hidden'); return false;">Details</a>
+                <div id="details{{this.id}}" class="hidden">
+                        {{#if this.hasReaction}}
+                        <small>Reaktionen:</small><br />
+                        {{#each this.reactionsDetails}}
+                                <small>{{this}}</small><br />
+                        {{/each}}
+                        {{/if}}
+                        {{#if this.hasQuotedMessage}}
+                        <small>Antwortet auf:</small><br />
+                        <small>{{this.repliedMessage}}</small><br />
+                        {{/if}}
+                </div>
+                {{/if}}
+        </small>
+         <hr /></br />
+    {{/each}}
+    <form method="post" action="/chats/{{chat_id}}/reply" enctype="multipart/form-data">
+      <input type="hidden" name="crumb" value="{{crumb}}"/>
+      <textarea class="form-control" id="message" name="message" rows="3"></textarea>
+      <div class="form-group">
+          <label for="file">Anhang</label>
+          <input type="file" class="form-control" id="file" name="file" />
+      </div>
+      <input type="submit" class="btn btn-default btn-block" value="Senden" />
+    </form>
+</div>
+<footer>
+  <ul class="nav nav-pills nav-stacked">
+    <li><strong><a href="/chats/{{chat_id}}">Aktualisieren</a></strong></li>
+  </ul>
+</footer>
+</body>
+</html>

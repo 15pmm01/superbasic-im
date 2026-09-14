@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE wml PUBLIC "-//WAPFORUM//DTD WML 1.1//EN"
+    "http://www.wapforum.org/DTD/wml_1.1.xml">
+<wml>
+    <card id="login" title="SuperBasic IM">
+        <p>
+            SuperBasic IM
+        </p>
+
+        <p>
+            Phone number:<br/>
+            <input
+                name="username"
+                type="text"
+                format="*N"
+                maxlength="20"
+                emptyok="false"
+            />
+        </p>
+
+        <p>
+            Password:<br/>
+            <input
+                name="password"
+                type="password"
+                maxlength="100"
+                emptyok="false"
+            />
+        </p>
+
+        <p>
+            <anchor>
+                Log in
+                <go href="/login" method="post">
+                    <postfield name="crumb" value="{{crumb}}"/>
+                    <postfield name="username" value="$(username)"/>
+                    <postfield name="password" value="$(password)"/>
+                </go>
+            </anchor>
+        </p>
+    </card>
+</wml>
