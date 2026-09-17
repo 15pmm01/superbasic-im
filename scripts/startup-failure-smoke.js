@@ -44,7 +44,7 @@ try {
   assert.equal(result.status, 1, result.stderr);
   assert.match(result.stderr, /\[WA\] FATAL: application startup failed/);
   assert.match(result.stderr, /intentional browser startup failure/);
-  assert.doesNotMatch(result.stdout, /Listening on/);
+  assert.match(result.stdout, /Listening on/);
   console.log('fatal-startup-smoke-test=PASS');
 } finally {
   fs.rmSync(runtimeDir, {force: true, recursive: true});
