@@ -1,6 +1,6 @@
 {
   "name": "superbasic-im",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Super Basic IM: a web-proxy for WhatsApp Web that works on dumbphones",
   "main": "dist/index.js",
   "scripts": {
