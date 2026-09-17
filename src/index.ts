@@ -450,14 +450,18 @@ function installFatalProcessHandlers(): void {
   });
 }
 
-/** Start the HTTP server only after the browser client initializes. */
+/** Start HTTP before WhatsApp initialization so pairing/re-auth remains available. */
 export async function runApplication(): Promise<void> {
   installFatalProcessHandlers();
 
   try {
     await init();
-    await client.initialize();
+
+    // The HTTP server must be available while WhatsApp is authenticating.
+    // In particular, the pairing page needs to serve the QR code emitted
+    // by client.initialize(), which may remain pending until it is scanned.
     await start();
+    await client.initialize();
   } catch (err) {
     markClientDead('application startup failed', err);
   }
