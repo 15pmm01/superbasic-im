@@ -4,6 +4,7 @@ import * as mime from 'mime-types';
 import path from 'path';
 import * as QRCode from 'qrcode';
 import {
+  Chat,
   Client as WAClient,
   Contact as WAContact,
   LocalAuth,
@@ -31,7 +32,13 @@ interface UploadedFile {
 }
 
 let clientDead = false;
+let clientReady = false;
 let exiting = false;
+let getChatsFailureCount = 0;
+let lastGetChatsFailureAt = 0;
+
+const GET_CHATS_FAILURE_LIMIT = 3;
+const GET_CHATS_FAILURE_WINDOW_MS = 60_000;
 
 ensureRuntimeDirectories();
 
@@ -58,6 +65,7 @@ function scheduleHardExit(reason: string, err?: unknown): void {
 
   exiting = true;
   clientDead = true;
+  clientReady = false;
   console.error(`[WA] FATAL: ${reason}`);
 
   if (err !== undefined) {
@@ -74,12 +82,18 @@ export function markClientDead(reason: string, err?: unknown): void {
   scheduleHardExit(reason, err);
 }
 
+export function isClientReady(): boolean {
+  return clientReady && !clientDead;
+}
+
 /** Exit so the process manager can restart a fatally broken browser client. */
 export async function ensureClient(): Promise<void> {
   if (clientDead) {
     scheduleHardExit('ensureClient called while client is marked dead');
     return;
   }
+
+  if (!isClientReady()) return;
 
   try {
     await client.getState();
@@ -116,6 +130,37 @@ export const client = new WAClient({
 
 export let pairQr: string | null = null;
 export const unreadChats = new Map<string, number>();
+
+/** Restart a persistently broken browser session instead of serving 503s forever. */
+export async function getChatsWithRecovery(context: string): Promise<Chat[]> {
+  try {
+    const chats = await client.getChats();
+    getChatsFailureCount = 0;
+    lastGetChatsFailureAt = 0;
+    return chats;
+  } catch (err) {
+    const now = Date.now();
+
+    if (now - lastGetChatsFailureAt > GET_CHATS_FAILURE_WINDOW_MS) {
+      getChatsFailureCount = 0;
+    }
+
+    getChatsFailureCount += 1;
+    lastGetChatsFailureAt = now;
+
+    if (
+      isFatalPuppeteerError(err) ||
+      getChatsFailureCount >= GET_CHATS_FAILURE_LIMIT
+    ) {
+      scheduleHardExit(
+        `getChats failed in ${context} (${getChatsFailureCount} consecutive failures)`,
+        err
+      );
+    }
+
+    throw err;
+  }
+}
 
 /**
  * Patch WhatsApp Web serializers so malformed contacts and partially loaded
@@ -156,9 +201,11 @@ async function patchWWebJSContactsOnce(): Promise<void> {
 client.once('ready', async () => {
   console.log('Client is ready!');
   await patchWWebJSContactsOnce();
+  clientReady = true;
+  pairQr = null;
 
   try {
-    const chats = await client.getChats();
+    const chats = await getChatsWithRecovery('ready()');
 
     for (const chat of chats) {
       if (chat.unreadCount > 0) {
@@ -178,6 +225,7 @@ client.once('ready', async () => {
 });
 
 client.on('qr', qr => {
+  clientReady = false;
   console.log('QR code RECEIVED');
 
   QRCode.toDataURL(qr, (err, url) => {

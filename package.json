@@ -13,11 +13,12 @@
     "prepare": "npm run compile",
     "setup": "node dist/index.js init",
     "smoke": "node scripts/smoke.js",
+    "smoke:client-recovery": "node scripts/client-recovery-smoke.js",
     "smoke:setup": "node scripts/setup-smoke.js",
     "smoke:startup-failure": "node scripts/startup-failure-smoke.js",
     "smoke:wa-patch": "node scripts/wa-patch-smoke.js",
     "start": "node dist/index.js",
-    "test": "npm run compile && npm run lint && npm run smoke && npm run smoke:setup && npm run smoke:startup-failure && npm run smoke:wa-patch",
+    "test": "npm run compile && npm run lint && npm run smoke && npm run smoke:setup && npm run smoke:startup-failure && npm run smoke:client-recovery && npm run smoke:wa-patch",
     "update:whatsapp": "node scripts/update-whatsapp.js"
   },
   "author": "tomtau",

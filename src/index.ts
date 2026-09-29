@@ -10,7 +10,7 @@ import * as handlebars from 'handlebars';
 import readline from 'readline';
 import {WAState} from 'whatsapp-web.js';
 
-import {client, markClientDead, pairQr} from './client';
+import {client, isClientReady, markClientDead, pairQr} from './client';
 import {getMessages, getRequestLanguage} from './i18n';
 import {
   ensureRuntimeDirectories,
@@ -217,6 +217,8 @@ export const init = async function (): Promise<Server> {
       request.path !== '/' &&
       !request.path.startsWith('/public')
     ) {
+      if (!isClientReady()) return h.redirect('/').takeover();
+
       let state: WAState | null = null;
 
       try {

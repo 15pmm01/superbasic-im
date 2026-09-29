@@ -15,8 +15,11 @@ import {
 import {
   client,
   ensureClient,
+  getChatsWithRecovery,
   getUserContacts,
+  isClientReady,
   longNumToDate,
+  markClientDead,
   pairQr,
   sendWAMessage,
   unreadChats,
@@ -133,6 +136,42 @@ function chatListFailure(
     .response(
       `<p>${messages.chatListUnavailable}</p>` +
         `<p><a href="/">${messages.back}</a></p>`
+    )
+    .code(503)
+    .type('text/html; charset=utf-8')
+    .header('Content-Language', getRequestLanguage(request))
+    .header('Vary', 'Accept-Language');
+}
+
+function whatsappRestartingResponse(
+  request: Request<ReqRefDefaults>,
+  h: ResponseToolkit<ReqRefDefaults>
+) {
+  const messages = getMessages(request);
+
+  if (isWmlRequest(request)) {
+    return h
+      .response(
+        `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE wml PUBLIC "-//WAPFORUM//DTD WML 1.1//EN"
+    "http://www.wapforum.org/DTD/wml_1.1.xml">
+<wml>
+    <card id="error" title="SuperBasic IM">
+        <p>${escapeWml(messages.whatsappRestarting)}</p>
+        <p><a href="/">${escapeWml(messages.retry)}</a></p>
+    </card>
+</wml>`
+      )
+      .code(503)
+      .type('text/vnd.wap.wml; charset=utf-8')
+      .header('Content-Language', getRequestLanguage(request))
+      .header('Vary', 'Accept-Language');
+  }
+
+  return h
+    .response(
+      `<p>${messages.whatsappRestarting}</p>` +
+        `<p><a href="/">${messages.retry}</a></p>`
     )
     .code(503)
     .type('text/html; charset=utf-8')
@@ -302,7 +341,7 @@ export const recent_chats_handler = async (
   let chats: Chat[] = [];
 
   try {
-    chats = await client.getChats();
+    chats = await getChatsWithRecovery('recent_chats_handler');
   } catch (err) {
     console.error('[WA] getChats failed in chat-list handler');
     console.error(errorDetails(err));
@@ -332,7 +371,7 @@ export const all_chats_handler = async (
   let chats: Chat[] = [];
 
   try {
-    chats = await client.getChats();
+    chats = await getChatsWithRecovery('all_chats_handler');
   } catch (err) {
     console.error('[WA] getChats failed in all_chats_handler');
     console.error(errorDetails(err));
@@ -772,51 +811,22 @@ export const new_chat_or_pair_handler = async (
   h: ResponseToolkit<ReqRefDefaults>
 ) => {
   const useWml = isWmlRequest(request);
-  const localized = getMessages(request);
   let state: WAState;
 
-  try {
-    state = await client.getState();
-  } catch (err) {
-    console.error(
-      '[WA] getState failed; restarting stale WhatsApp client process'
-    );
-    console.error(errorDetails(err));
-
-    setTimeout(() => {
-      // A clean process restart is the only reliable recovery here.
-      // eslint-disable-next-line n/no-process-exit
-      process.exit(1);
-    }, 1000);
-
-    if (useWml) {
-      return h
-        .response(
-          `<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE wml PUBLIC "-//WAPFORUM//DTD WML 1.1//EN"
-    "http://www.wapforum.org/DTD/wml_1.1.xml">
-<wml>
-    <card id="error" title="SuperBasic IM">
-        <p>${escapeWml(localized.whatsappRestarting)}</p>
-        <p><a href="/">${escapeWml(localized.retry)}</a></p>
-    </card>
-</wml>`
-        )
-        .code(503)
-        .type('text/vnd.wap.wml; charset=utf-8')
-        .header('Content-Language', getRequestLanguage(request))
-        .header('Vary', 'Accept-Language');
+  if (!isClientReady()) {
+    if (pairQr === null) return whatsappRestartingResponse(request, h);
+    state = WAState.UNLAUNCHED;
+  } else {
+    try {
+      state = await client.getState();
+    } catch (err) {
+      console.error(
+        '[WA] getState failed; restarting stale WhatsApp client process'
+      );
+      console.error(errorDetails(err));
+      markClientDead('client.getState failed in root handler', err);
+      return whatsappRestartingResponse(request, h);
     }
-
-    return h
-      .response(
-        `<p>${localized.whatsappRestarting}</p>` +
-          `<p><a href="/">${localized.retry}</a></p>`
-      )
-      .code(503)
-      .type('text/html; charset=utf-8')
-      .header('Content-Language', getRequestLanguage(request))
-      .header('Vary', 'Accept-Language');
   }
 
   if (state !== WAState.CONNECTED) {
